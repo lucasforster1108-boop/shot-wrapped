@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>截图年报 ShotWrapped — 你这一年在意什么，全在截图里</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif; background: #f6f4ef; color: #26221c; line-height: 1.6; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 26px; margin: 8px 0 4px; }
+  .sub { color: #7a7264; margin: 0 0 6px; font-size: 14px; }
+  .privacy { font-size: 13px; color: #2e7d4f; margin: 0 0 20px; }
+  .drop { border: 2px dashed #d8d1c2; border-radius: 14px; padding: 28px 20px; text-align: center; color: #8a8172; background: #fff; }
+  .drop.over { border-color: #2e7d4f; color: #2e7d4f; background: #f0f7f2; }
+  .drop p { margin: 4px 0 14px; }
+  .row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  button.big { flex: 1; padding: 13px 10px; font-size: 15px; border-radius: 10px; border: none; cursor: pointer; min-width: 130px; }
+  .btn-dark { background: #26221c; color: #fff; }
+  .btn-green { background: #2e7d4f; color: #fff; }
+  .btn-ghost { background: #fff; border: 1px solid #d8d1c2; color: #57503f; }
+  .hidden { display: none; }
+  .status { font-size: 14px; color: #57503f; margin: 14px 2px 0; min-height: 22px; white-space: pre-wrap; }
+  .stats { display: flex; gap: 10px; margin: 20px 0; flex-wrap: wrap; }
+  .stat { flex: 1 1 40%; background: #fff; border: 1px solid #e5dfd3; border-radius: 12px; padding: 12px 8px; text-align: center; }
+  .stat b { display: block; font-size: 23px; line-height: 1.25; }
+  .stat span { font-size: 12px; color: #8a8172; }
+  .panel { background: #fff; border: 1px solid #e5dfd3; border-radius: 14px; padding: 18px 20px; margin-bottom: 16px; }
+  .panel h2 { font-size: 17px; margin: 0 0 10px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin: 7px 0; font-size: 14px; }
+  .bar-row .name { width: 76px; flex: none; color: #57503f; }
+  .bar-row .bar { flex: 1; background: #f0ead9; border-radius: 999px; height: 12px; overflow: hidden; }
+  .bar-row .bar i { display: block; height: 100%; background: #2e7d4f; border-radius: 999px; }
+  .bar-row .num { width: 92px; flex: none; text-align: right; color: #8a8172; font-size: 13px; }
+  .cards { display: flex; gap: 12px; flex-wrap: wrap; }
+  .wcard { flex: 1 1 200px; background: #26221c; color: #f6f4ef; border-radius: 14px; padding: 20px 18px; min-height: 220px; display: flex; flex-direction: column; }
+  .wcard .t { font-size: 13px; color: #c9bfa8; }
+  .wcard .big-num { font-size: 34px; font-weight: 700; line-height: 1.2; margin: 10px 0; word-break: break-all; }
+  .wcard .lines { font-size: 13.5px; color: #e8e2d4; flex: 1; }
+  .wcard .lines div { margin: 3px 0; }
+  .wcard button { margin-top: 14px; background: #f6f4ef; color: #26221c; border: none; border-radius: 8px; padding: 9px 0; font-size: 14px; cursor: pointer; }
+  .hint { font-size: 13px; color: #8a8172; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #26221c; color: #fff; padding: 10px 18px; border-radius: 999px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>截图年报 ShotWrapped</h1>
+  <p class="sub">照片记录你去过哪，截图记录的才是你这一年在意什么。</p>
+  <p class="privacy">全程在本地浏览器里算，不注册、不上传。截图这种东西，本来就不该往外传。</p>
+
+  <div class="drop" id="drop">
+    <p>把手机截图拖到这里，或者选一种方式开始</p>
+    <div class="row">
+      <button class="big btn-dark" id="pickFiles">选择截图</button>
+      <button class="big btn-ghost" id="pickFolder">选择整个文件夹</button>
+      <button class="big btn-green" id="demoBtn">先看示例</button>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" multiple class="hidden">
+    <input type="file" id="folderInput" webkitdirectory class="hidden">
+  </div>
+  <p class="status" id="status"></p>
+
+  <div id="results" class="hidden">
+    <div class="stats">
+      <div class="stat"><b id="statTotal">-</b><span>截图总数</span></div>
+      <div class="stat"><b id="statSize">-</b><span>一共占了</span></div>
+      <div class="stat"><b id="statMonth">-</b><span>截图最忙的月份</span></div>
+      <div class="stat"><b id="statNight">-</b><span>是深夜截的</span></div>
+    </div>
+
+    <div class="panel">
+      <h2>截图里都是什么</h2>
+      <div id="catBox"><p class="hint">还没识别。点下面的「深度识别」，认一认截图里的字，再按内容分类。识别只抽样一部分，比例是推算的，图上会写清。</p></div>
+      <div class="row">
+        <button class="big btn-dark" id="ocrBtn">深度识别（认截图里的字）</button>
+      </div>
+      <p class="hint" id="ocrNote">真实截图的识别要联网加载一个 OCR 引擎，加载不上就只出统计和去重，分类这一项先空着，不糊弄你。</p>
+    </div>
+
+    <div class="panel">
+      <h2>重复和过期，能腾出多少</h2>
+      <p id="dupBox">-</p>
+      <div class="row">
+        <button class="big btn-ghost" id="delBtn">下载待删清单</button>
+      </div>
+      <p class="hint">只出清单，不替你删。删之前自己抽查几张，确认没误删再动手。</p>
+    </div>
+
+    <div class="panel">
+      <h2>你的五张年报卡</h2>
+      <div class="cards" id="cards"></div>
+      <p class="hint">点卡片下面的按钮，下载 1080×1440 的 PNG，直接发小红书、朋友圈都行。</p>
+    </div>
+  </div>
+
+  <p class="hint">小提示：安卓截图文件名里带日期（Screenshot_20261105-……），年报的月份和深夜占比就是按它算的；文件名看不出日期的，用文件时间兜底。</p>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ===== 纯函数层：不碰 DOM，可单测 ===== */
+
+function isScreenshotFile(name) {
+  if (!name) return false;
+  var n = String(name);
+  if (/screenshot|screen[_ ]?shot|截屏|截图|截圖/i.test(n)) return true;
+  return /\.(png|jpe?g|webp|gif|bmp)$/i.test(n);
+}
+
+function makeDateMs(y, mo, d, h, mi, s) {
+  if (mo < 1 || mo > 12 || d < 1 || d > 31 || h > 23 || mi > 59 || s > 59) return null;
+  var dt = new Date(y, mo - 1, d, h, mi, s);
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+  return dt.getTime();
+}
+
+function parseDateFromName(name) {
+  if (!name) return null;
+  var n = String(name);
+  var m = n.match(/(\d{4})[-_]?(\d{2})[-_]?(\d{2})[-_ T]?(\d{2})[:]?(\d{2})[:]?(\d{2})/);
+  if (m) {
+    var t = makeDateMs(+m[1], +m[2], +m[3], +m[4], +m[5], +m[6]);
+    if (t !== null) return t;
+  }
+  m = n.match(/(\d{4})[-_](\d{2})[-_](\d{2})/);
+  if (m) {
+    var t2 = makeDateMs(+m[1], +m[2], +m[3], 12, 0, 0);
+    if (t2 !== null) return t2;
+  }
+  return null;
+}
+
+function entryDate(entry) {
+  var t = parseDateFromName(entry && entry.name);
+  if (t !== null) return t;
+  return (entry && entry.lastModified) || 0;
+}
+
+function formatBytes(n) {
+  n = Number(n) || 0;
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1).replace(/\.0$/, '') + ' KB';
+  if (n < 1024 * 1024 * 1024) return (n / 1048576).toFixed(1).replace(/\.0$/, '') + ' MB';
+  return (n / 1073741824).toFixed(2).replace(/\.?0+$/, '') + ' GB';
+}
+
+function pad2(x) { return (x < 10 ? '0' : '') + x; }
+
+function monthKey(ms) {
+  var d = new Date(ms);
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1);
+}
+
+function dayKey(ms) {
+  var d = new Date(ms);
+  return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+
+function fmtMonth(key) {
+  var p = String(key).split('-');
+  return p[0] + ' 年 ' + Number(p[1]) + ' 月';
+}
+
+function fmtDate(ms) {
+  var d = new Date(ms);
+  return d.getFullYear() + ' 年 ' + (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日';
+}
+
+function computeStats(entries) {
+  var list = (entries || []).map(function (e) {
+    return { name: e.name, size: Number(e.size) || 0, date: entryDate(e) };
+  });
+  var totalBytes = 0, nightCount = 0;
+  var byMonthMap = {}, byDayMap = {}, byYearMap = {};
+  var min = Infinity, max = -Infinity;
+  list.forEach(function (e) {
+    totalBytes += e.size;
+    if (e.date < min) min = e.date;
+    if (e.date > max) max = e.date;
+    var mk = monthKey(e.date), dk = dayKey(e.date), yk = String(new Date(e.date).getFullYear());
+    if (!byMonthMap[mk]) byMonthMap[mk] = { month: mk, count: 0, bytes: 0 };
+    byMonthMap[mk].count++; byMonthMap[mk].bytes += e.size;
+    byDayMap[dk] = (byDayMap[dk] || 0) + 1;
+    byYearMap[yk] = (byYearMap[yk] || 0) + 1;
+    var h = new Date(e.date).getHours();
+    if (h >= 23 || h < 5) nightCount++;
+  });
+  var byMonth = Object.keys(byMonthMap).sort().map(function (k) { return byMonthMap[k]; });
+  var busiestMonth = null;
+  byMonth.forEach(function (m) { if (!busiestMonth || m.count > busiestMonth.count) busiestMonth = m; });
+  var busiestDay = null;
+  Object.keys(byDayMap).forEach(function (k) {
+    if (!busiestDay || byDayMap[k] > busiestDay.count) busiestDay = { date: k, count: byDayMap[k] };
+  });
+  var topYear = null;
+  Object.keys(byYearMap).forEach(function (k) {
+    if (!topYear || byYearMap[k] > topYear.count) topYear = { year: k, count: byYearMap[k] };
+  });
+  var count = list.length;
+  var spanDays = count ? Math.max(1, Math.floor((max - min) / 86400000) + 1) : 0;
+  return {
+    count: count,
+    totalBytes: totalBytes,
+    byMonth: byMonth,
+    busiestMonth: busiestMonth,
+    busiestDay: busiestDay,
+    topYear: topYear,
+    nightCount: nightCount,
+    nightRatio: count ? nightCount / count : 0,
+    firstDate: count ? min : 0,
+    lastDate: count ? max : 0,
+    spanDays: spanDays,
+    avgPerDay: count ? Math.round(count / spanDays * 10) / 10 : 0
+  };
+}
+
+function hashFromGrid(grid) {
+  if (!grid || grid.length !== 72) throw new Error('grid 需要 8 行 × 9 列共 72 个灰度值');
+  var hex = '';
+  for (var nib = 0; nib < 16; nib++) {
+    var v = 0;
+    for (var b = 0; b < 4; b++) {
+      var idx = nib * 4 + b;
+      var r = Math.floor(idx / 8), c = idx % 8;
+      var bit = grid[r * 9 + c] > grid[r * 9 + c + 1] ? 1 : 0;
+      v = v * 2 + bit;
+    }
+    hex += v.toString(16);
+  }
+  return hex;
+}
+
+function hammingDistance(a, b) {
+  if (!a || !b || a.length !== b.length) return Infinity;
+  var dist = 0;
+  for (var i = 0; i < a.length; i++) {
+    var x = parseInt(a[i], 16) ^ parseInt(b[i], 16);
+    while (x) { dist += x & 1; x >>= 1; }
+  }
+  return dist;
+}
+
+function findDuplicates(entries, threshold) {
+  if (threshold === undefined) threshold = 5;
+  var hashed = [];
+  (entries || []).forEach(function (e, i) { if (e && e.hash) hashed.push(i); });
+  var exactOnly = hashed.length > 2500;
+  var th = exactOnly ? 0 : threshold;
+  var used = {};
+  var groups = [], extraIndices = [], wastedBytes = 0;
+  hashed.forEach(function (i) {
+    if (used[i]) return;
+    var group = [i];
+    hashed.forEach(function (j) {
+      if (j === i || used[j]) return;
+      if (hammingDistance(entries[i].hash, entries[j].hash) <= th) group.push(j);
+    });
+    if (group.length < 2) { used[i] = true; return; }
+    group.sort(function (a, b) { return entryDate(entries[a]) - entryDate(entries[b]); });
+    group.forEach(function (idx) { used[idx] = true; });
+    groups.push(group);
+    group.slice(1).forEach(function (idx) {
+      extraIndices.push(idx);
+      wastedBytes += Number(entries[idx].size) || 0;
+    });
+  });
+  extraIndices.sort(function (a, b) { return a - b; });
+  return { groups: groups, extraCount: extraIndices.length, extraIndices: extraIndices, wastedBytes: wastedBytes, exactOnly: exactOnly };
+}
+
+var CATEGORY_RULES = [
+  ['时效垃圾', ['验证码', '取件码', '快递单号', '运单号', '二维码', '健康码', '行程码', '临时密码', '取餐码']],
+  ['支付票据', ['支付成功', '付款成功', '订单详情', '电子发票', '发票', '收据', '账单', '退款成功', '交易成功', '收款码']],
+  ['购物比价', ['购物车', '加入购物车', '优惠券', '满减', '到手价', '店铺', '宝贝', '商品详情', '立即购买']],
+  ['地图出行', ['导航', '全程约', '公里', '预计到达', '航班', '车次', '车站', '打车', '行程']],
+  ['学习笔记', ['笔记', '课程', '知识点', '论文', '讲义', '复习', '单词']],
+  ['聊天记录', ['聊天记录', '语音通话', '视频通话', '对方正在输入']]
+];
+var CATEGORIES = ['时效垃圾', '支付票据', '购物比价', '地图出行', '学习笔记', '聊天记录', '其他'];
+
+function categorizeText(text) {
+  var t = String(text || '');
+  for (var i = 0; i < CATEGORY_RULES.length; i++) {
+    var kws = CATEGORY_RULES[i][1];
+    for (var j = 0; j < kws.length; j++) {
+      if (t.indexOf(kws[j]) !== -1) return CATEGORY_RULES[i][0];
+    }
+  }
+  return '其他';
+}
+
+function analyzeSample(sample, totalCount, totalBytes) {
+  var counts = {}, bytes = {};
+  CATEGORIES.forEach(function (c) { counts[c] = 0; bytes[c] = 0; });
+  (sample || []).forEach(function (e) {
+    var c = CATEGORIES.indexOf(e.category) !== -1 ? e.category : '其他';
+    counts[c]++; bytes[c] += Number(e.size) || 0;
+  });
+  var n = (sample || []).length;
+  var sampleBytes = 0;
+  CATEGORIES.forEach(function (c) { sampleBytes += bytes[c]; });
+  var estCounts = {}, estBytes = {};
+  CATEGORIES.forEach(function (c) {
+    estCounts[c] = n ? Math.round(counts[c] / n * totalCount) : 0;
+    estBytes[c] = sampleBytes ? Math.round(bytes[c] / sampleBytes * totalBytes) : 0;
+  });
+  var topCategory = '其他', topN = -1;
+  CATEGORIES.forEach(function (c) {
+    if (c !== '其他' && estCounts[c] > topN) { topN = estCounts[c]; topCategory = c; }
+  });
+  if (topN <= 0) topCategory = '其他';
+  return {
+    sampleSize: n,
+    counts: counts,
+    estCounts: estCounts,
+    estBytes: estBytes,
+    topCategory: topCategory,
+    expiredBytes: estBytes['时效垃圾'] || 0,
+    expiredShare: n ? counts['时效垃圾'] / n : 0
+  };
+}
+
+function estimateReclaimable(dup, analysis) {
+  var dupBytes = dup ? dup.wastedBytes : 0;
+  var expiredBytes = analysis ? analysis.expiredBytes : 0;
+  return { bytes: dupBytes + expiredBytes, dupBytes: dupBytes, expiredBytes: expiredBytes };
+}
+
+function personaFor(nightRatio) {
+  if (nightRatio >= 0.35) return '深夜截屏型选手';
+  if (nightRatio >= 0.18) return '晚间灵感型选手';
+  return '白天高效型选手';
+}
+
+function buildCards(stats, dup, analysis) {
+  var reclaim = estimateReclaimable(dup, analysis);
+  var pct = function (x) { return Math.round(x * 100) + '%'; };
+  var cards = [];
+  cards.push({
+    id: 'total', title: '我的截图年报',
+    big: stats.count + ' 张',
+    lines: [
+      '一共占了 ' + formatBytes(stats.totalBytes),
+      '平均每天截 ' + stats.avgPerDay + ' 张',
+      fmtDate(stats.firstDate) + ' 到 ' + fmtDate(stats.lastDate)
+    ]
+  });
+  if (stats.busiestMonth) {
+    cards.push({
+      id: 'month', title: '截图最忙的一个月',
+      big: fmtMonth(stats.busiestMonth.month),
+      lines: [
+        '这个月截了 ' + stats.busiestMonth.count + ' 张',
+        '占了总数的 ' + pct(stats.count ? stats.busiestMonth.count / stats.count : 0),
+        '光这一个月就占了 ' + formatBytes(stats.busiestMonth.bytes)
+      ]
+    });
+  }
+  cards.push({
+    id: 'night', title: '深夜截图',
+    big: pct(stats.nightRatio),
+    lines: [
+      '23 点到凌晨 5 点，截了 ' + stats.nightCount + ' 张',
+      '鉴定：' + personaFor(stats.nightRatio),
+      '白天怕忘的事，半夜想起来截的图最多'
+    ]
+  });
+  if (analysis && analysis.sampleSize > 0) {
+    cards.push({
+      id: 'content', title: '我最舍不得删的',
+      big: analysis.topCategory,
+      lines: [
+        '推算约 ' + (analysis.estCounts[analysis.topCategory] || 0) + ' 张（抽样 ' + analysis.sampleSize + ' 张推算）',
+        '时效垃圾占了 ' + pct(analysis.expiredShare) + '，早就过期了',
+        '截的时候都怕忘，删的时候才发现没再看过'
+      ]
+    });
+  } else {
+    cards.push({
+      id: 'content', title: '我最舍不得删的',
+      big: '待识别',
+      lines: ['点一次深度识别，看看截图里都是什么', '识别只抽样，比例是推算的，不冒充全量']
+    });
+  }
+  cards.push({
+    id: 'clean', title: '能腾出的空间',
+    big: formatBytes(reclaim.bytes),
+    lines: [
+      '重复截图 ' + formatBytes(reclaim.dupBytes),
+      '过期截图约 ' + formatBytes(reclaim.expiredBytes),
+      '删之前先看一眼待删清单'
+    ]
+  });
+  return cards;
+}
+
+function buildDeleteList(entries, dup, categories) {
+  var lines = [];
+  lines.push('# ShotWrapped 待删清单');
+  lines.push('# 先抽查几张确认没问题再删。本工具只出清单，不替你删。');
+  lines.push('');
+  lines.push('## 重复截图（每组留最早一张，下面是多余的）');
+  var extra = dup ? dup.extraIndices : [];
+  var extraSet = {};
+  extra.forEach(function (i) { extraSet[i] = true; lines.push(entries[i].name); });
+  if (!extra.length) lines.push('（没有）');
+  lines.push('');
+  lines.push('## 时效垃圾（验证码、取件码这类，过期就没用了）');
+  var n = 0;
+  (entries || []).forEach(function (e, i) {
+    if (extraSet[i]) return;
+    if (categories && categories[i] === '时效垃圾') { lines.push(e.name); n++; }
+  });
+  if (!n) lines.push('（没有，或还没做深度识别）');
+  return lines.join('\n');
+}
+
+function pickSample(entries, max) {
+  var list = (entries || []).slice();
+  if (list.length <= max) return list;
+  list.sort(function (a, b) { return entryDate(a) - entryDate(b); });
+  var out = [], step = list.length / max;
+  for (var i = 0; i < max; i++) out.push(list[Math.floor(i * step)]);
+  return out;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    isScreenshotFile: isScreenshotFile,
+    parseDateFromName: parseDateFromName,
+    entryDate: entryDate,
+    formatBytes: formatBytes,
+    monthKey: monthKey,
+    dayKey: dayKey,
+    fmtMonth: fmtMonth,
+    fmtDate: fmtDate,
+    computeStats: computeStats,
+    hashFromGrid: hashFromGrid,
+    hammingDistance: hammingDistance,
+    findDuplicates: findDuplicates,
+    CATEGORY_RULES: CATEGORY_RULES,
+    CATEGORIES: CATEGORIES,
+    categorizeText: categorizeText,
+    analyzeSample: analyzeSample,
+    estimateReclaimable: estimateReclaimable,
+    personaFor: personaFor,
+    buildCards: buildCards,
+    buildDeleteList: buildDeleteList,
+    pickSample: pickSample
+  };
+}
+</script>
+
+<script>
+'use strict';
+/* ===== 界面层：浏览器里才跑 ===== */
+(function () {
+  if (typeof document === 'undefined') return;
+  var SW = (typeof module !== 'undefined' && module.exports) || {};
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { entries: [], stats: null, dup: null, analysis: null, categories: [], demo: false, files: [] };
+
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function () { t.classList.remove('show'); }, 2200);
+  }
+  function setStatus(msg) { $('status').textContent = msg; }
+
+  function download(name, blob) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body && document.body.appendChild && document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+  }
+
+  /* --- 示例数据：固定种子，数字每次一样，方便演示和截图 --- */
+  function mulberry32(seed) {
+    return function () {
+      seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+      var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  var DEMO_TEXTS = {
+    '时效垃圾': '您的验证码是 482913，5 分钟内有效，请勿告诉他人',
+    '支付票据': '支付成功 ¥58.00 订单详情 电子发票已开具',
+    '购物比价': '加入购物车 满减 到手价 ¥129 店铺优惠券',
+    '地图出行': '导航 全程约 12 公里 预计到达 18:40',
+    '学习笔记': '知识点复习 笔记：供给曲线移动的三个因素',
+    '聊天记录': '聊天记录 语音通话 00:42',
+    '其他': '一张随手截下来的图'
+  };
+  var DEMO_CATS = ['其他', '其他', '聊天记录', '购物比价', '时效垃圾', '其他', '支付票据', '聊天记录', '学习笔记', '购物比价', '其他', '时效垃圾', '地图出行', '聊天记录', '支付票据', '其他'];
+  function randomHash(rng) {
+    var h = '';
+    for (var i = 0; i < 16; i++) h += Math.floor(rng() * 16).toString(16);
+    return h;
+  }
+  function makeDemoEntries() {
+    var rng = mulberry32(20261116);
+    var entries = [], baseHashes = [];
+    for (var i = 0; i < 40; i++) baseHashes.push(randomHash(rng));
+    for (var k = 0; k < 428; k++) {
+      var month = Math.floor(rng() * 11); // 2026 年 1-11 月
+      var day = 1 + Math.floor(rng() * 28);
+      var night = rng() < 0.27;
+      var hour = night ? (rng() < 0.5 ? 23 : Math.floor(rng() * 5)) : 8 + Math.floor(rng() * 15);
+      var dt = new Date(2026, month, day, hour, Math.floor(rng() * 60), Math.floor(rng() * 60));
+      var cat = DEMO_CATS[Math.floor(rng() * DEMO_CATS.length)];
+      var hash = rng() < 0.12 && entries.length ? entries[Math.floor(rng() * entries.length)].hash : baseHashes[Math.floor(rng() * baseHashes.length)];
+      var p = function (x) { return (x < 10 ? '0' : '') + x; };
+      var name = 'Screenshot_' + dt.getFullYear() + p(dt.getMonth() + 1) + p(dt.getDate()) + '-' + p(dt.getHours()) + p(dt.getMinutes()) + p(dt.getSeconds()) + '.png';
+      entries.push({
+        name: name,
+        size: Math.round((0.4 + rng() * 3.4) * 1048576),
+        lastModified: dt.getTime(),
+        hash: hash,
+        text: DEMO_TEXTS[cat]
+      });
+    }
+    entries.sort(function (a, b) { return SW.entryDate(a) - SW.entryDate(b); });
+    return entries;
+  }
+
+  /* --- 真实文件：解码算感知哈希 --- */
+  function hashOfFile(file) {
+    return new Promise(function (resolve) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var cv = document.createElement('canvas');
+          cv.width = 9; cv.height = 8;
+          var ctx = cv.getContext('2d');
+          ctx.drawImage(img, 0, 0, 9, 8);
+          var data = ctx.getImageData(0, 0, 9, 8).data;
+          var grid = [];
+          for (var i = 0; i < 72; i++) {
+            grid.push(0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2]);
+          }
+          URL.revokeObjectURL(url);
+          resolve(SW.hashFromGrid(grid));
+        } catch (e) { URL.revokeObjectURL(url); resolve(null); }
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
+  }
+
+  async function handleFiles(fileList) {
+    var files = Array.prototype.slice.call(fileList || []).filter(function (f) {
+      return (f.type && f.type.indexOf('image/') === 0) || SW.isScreenshotFile(f.name);
+    });
+    if (!files.length) { setStatus('没挑到图片文件。手机截图一般是 png 或 jpg，再试一次。'); return; }
+    state.demo = false;
+    state.files = files;
+    var entries = [];
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      var hash = await hashOfFile(f);
+      entries.push({ name: f.name, size: f.size, lastModified: f.lastModified, hash: hash, _file: f });
+      if (i % 40 === 0) setStatus('正在读截图 ' + (i + 1) + ' / ' + files.length + '，全程本地，不上传。');
+    }
+    state.entries = entries;
+    state.analysis = null;
+    state.categories = entries.map(function () { return '其他'; });
+    setStatus('读完了，一共 ' + entries.length + ' 张。下面是你的年报。');
+    render();
+  }
+
+  function render() {
+    state.stats = SW.computeStats(state.entries);
+    state.dup = SW.findDuplicates(state.entries);
+    var s = state.stats;
+    $('results').classList.remove('hidden');
+    $('statTotal').textContent = s.count + ' 张';
+    $('statSize').textContent = SW.formatBytes(s.totalBytes);
+    $('statMonth').textContent = s.busiestMonth ? SW.fmtMonth(s.busiestMonth.month) : '-';
+    $('statNight').textContent = Math.round(s.nightRatio * 100) + '%';
+    /* 分类 */
+    if (state.analysis && state.analysis.sampleSize > 0) {
+      var a = state.analysis, html = '';
+      SW.CATEGORIES.forEach(function (c) {
+        var est = a.estCounts[c] || 0;
+        var pctv = s.count ? Math.round(est / s.count * 100) : 0;
+        if (!est) return;
+        html += '<div class="bar-row"><span class="name">' + c + '</span><span class="bar"><i style="width:' + pctv + '%"></i></span><span class="num">约 ' + est + ' 张 · ' + pctv + '%</span></div>';
+      });
+      html += '<p class="hint">抽样 ' + a.sampleSize + ' 张识别后推算全量，数字是估算，不是逐张数的。</p>';
+      $('catBox').innerHTML = html;
+    }
+    /* 去重 */
+    var rec = SW.estimateReclaimable(state.dup, state.analysis);
+    $('dupBox').textContent = '重复截图 ' + state.dup.extraCount + ' 张，占 ' + SW.formatBytes(state.dup.wastedBytes) +
+      '；过期截图约 ' + SW.formatBytes(rec.expiredBytes) + '。两样加起来，能腾出约 ' + SW.formatBytes(rec.bytes) + '。' +
+      (state.dup.exactOnly ? '（截图太多，重复只按完全相同算了，没做近似比对。）' : '');
+    /* 年报卡 */
+    var cards = SW.buildCards(state.stats, state.dup, state.analysis);
+    $('cards').innerHTML = cards.map(function (c, i) {
+      return '<div class="wcard"><div class="t">' + c.title + '</div><div class="big-num">' + c.big + '</div><div class="lines">' +
+        c.lines.map(function (l) { return '<div>' + l + '</div>'; }).join('') +
+        '</div><button data-card="' + i + '">下载这张卡</button></div>';
+    }).join('');
+    state.cards = cards;
+  }
+
+  function drawCard(card) {
+    var cv = document.createElement('canvas');
+    cv.width = 1080; cv.height = 1440;
+    var ctx = cv.getContext('2d');
+    if (!ctx) { toast('这个浏览器画不了卡片图'); return; }
+    ctx.fillStyle = '#26221c'; ctx.fillRect(0, 0, 1080, 1440);
+    ctx.fillStyle = '#2e7d4f'; ctx.fillRect(0, 0, 1080, 18);
+    ctx.fillStyle = '#c9bfa8'; ctx.font = '44px sans-serif';
+    ctx.fillText(card.title, 80, 190);
+    ctx.fillStyle = '#f6f4ef'; ctx.font = 'bold 150px sans-serif';
+    var big = String(card.big);
+    if (big.length > 7) ctx.font = 'bold 104px sans-serif';
+    ctx.fillText(big, 80, 420);
+    ctx.font = '52px sans-serif'; ctx.fillStyle = '#e8e2d4';
+    card.lines.forEach(function (l, i) { ctx.fillText(l, 80, 580 + i * 96); });
+    ctx.fillStyle = '#8a8172'; ctx.font = '38px sans-serif';
+    ctx.fillText('ShotWrapped · 截图年报', 80, 1330);
+    cv.toBlob(function (blob) {
+      if (blob) download('shotwrapped-' + card.id + '.png', blob);
+    });
+  }
+
+  /* --- 深度识别 --- */
+  async function runOcr() {
+    if (!state.entries.length) return;
+    if (state.demo) {
+      var sample = SW.pickSample(state.entries, 120).map(function (e) {
+        return { category: SW.categorizeText(e.text), size: e.size };
+      });
+      state.analysis = SW.analyzeSample(sample, state.stats.count, state.stats.totalBytes);
+      state.categories = state.entries.map(function (e) { return SW.categorizeText(e.text); });
+      setStatus('示例模式：已按示例文字识别完，分类出来了。');
+      render();
+      return;
+    }
+    setStatus('正在加载 OCR 引擎（要联网，几 MB，稍等）……');
+    try {
+      if (typeof Tesseract === 'undefined') {
+        await new Promise(function (resolve, reject) {
+          var sc = document.createElement('script');
+          sc.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+          sc.onload = resolve; sc.onerror = reject;
+          document.head.appendChild(sc);
+        });
+      }
+      var worker = await Tesseract.createWorker('chi_sim+eng');
+      var sampleEntries = SW.pickSample(state.entries, 60);
+      var sample = [];
+      for (var i = 0; i < sampleEntries.length; i++) {
+        var e = sampleEntries[i];
+        var text = '';
+        try {
+          var r = await worker.recognize(URL.createObjectURL(e._file));
+          text = (r && r.data && r.data.text) || '';
+        } catch (err) { text = ''; }
+        sample.push({ category: SW.categorizeText(text), size: e.size });
+        if (i % 6 === 0) setStatus('识别中 ' + (i + 1) + ' / ' + sampleEntries.length + '（抽样识别，比例用来推算全量）');
+      }
+      await worker.terminate();
+      state.analysis = SW.analyzeSample(sample, state.stats.count, state.stats.totalBytes);
+      var catByName = {};
+      state.entries.forEach(function (en) { catByName[en.name] = '其他'; });
+      sampleEntries.forEach(function (en, i) { catByName[en.name] = sample[i].category; });
+      state.categories = state.entries.map(function (en) { return catByName[en.name]; });
+      setStatus('识别完了，抽样 ' + sample.length + ' 张，分类和年报卡都更新了。');
+      render();
+    } catch (e) {
+      setStatus('OCR 引擎没加载上，多半是离线或者网络不通。统计、去重、年报卡不受影响，分类这一项先空着。');
+    }
+  }
+
+  /* --- 绑定 --- */
+  $('pickFiles').onclick = function () { $('fileInput').click(); };
+  $('pickFolder').onclick = function () { $('folderInput').click(); };
+  $('fileInput').onchange = function (e) { handleFiles(e.target.files); };
+  $('folderInput').onchange = function (e) { handleFiles(e.target.files); };
+  $('demoBtn').onclick = function () {
+    state.demo = true;
+    state.entries = makeDemoEntries();
+    state.analysis = null;
+    state.categories = state.entries.map(function () { return '其他'; });
+    setStatus('这是示例数据：428 张虚构截图，数字每次都一样。换成你自己的截图，算的是真账。');
+    render();
+  };
+  $('ocrBtn').onclick = function () { runOcr(); };
+  $('delBtn').onclick = function () {
+    if (!state.entries.length) return;
+    var txt = SW.buildDeleteList(state.entries, state.dup, state.categories);
+    download('shotwrapped-待删清单.txt', new Blob([txt], { type: 'text/plain;charset=utf-8' }));
+    toast('待删清单下载好了');
+  };
+  $('cards').onclick = function (e) {
+    var idx = e.target && e.target.getAttribute && e.target.getAttribute('data-card');
+    if (idx === null || idx === undefined || idx === '') return;
+    var card = state.cards && state.cards[Number(idx)];
+    if (card) drawCard(card);
+  };
+  var drop = $('drop');
+  drop.ondragover = function (e) { e.preventDefault(); drop.classList.add('over'); };
+  drop.ondragleave = function () { drop.classList.remove('over'); };
+  drop.ondrop = function (e) {
+    e.preventDefault();
+    drop.classList.remove('over');
+    if (e.dataTransfer && e.dataTransfer.files) handleFiles(e.dataTransfer.files);
+  };
+})();
+</script>
+</body>
+</html>
